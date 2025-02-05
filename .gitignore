@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build files
+dist/
+.vite/
+.cache/
+
+# Environment variables
+.env
+.env.development
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Editor and IDE files
+.vscode/
+.idea/
+
+# Platform-specific files
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.debug
+
+# Local development files
+*.local
+
+# Test files
+coverage/
+*.spec.js
+*.test.js
+
+# Miscellaneous
+*.swp
+*.swo
