@@ -1,8 +1,8 @@
+import { log } from 'three/tsl';
 import * as THREE from './node_modules/three/build/three.module.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 
-
-const scene = new THREE.Scene();
+/*const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 
@@ -21,13 +21,13 @@ camera.position.y = 2;
 camera.lookAt(0, 0, 0);
 
 // Add orbit controls
- const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.screenSpacePanning = false;
 controls.minDistance = 1;
 controls.maxDistance = 50;
-controls.maxPolarAngle = Math.PI / 2; 
+controls.maxPolarAngle = Math.PI / 2;
 
 
 let points = [];
@@ -124,31 +124,31 @@ function setupDrawing(canvas, ctx, texture) {
         heightInput.max = '10';
         heightInput.step = '0.1';
         heightInput.value = '0';
-    
-        
-    
+
+
+
         const valueDisplay = document.createElement('span');
         valueDisplay.id = 'heightValue';
         valueDisplay.textContent = heightInput.value;
-        
-        
-    
+
+
+
         document.body.appendChild(heightInput);
         document.body.appendChild(valueDisplay);
-    
+
         heightInput.addEventListener('input', (e) => {
             const height = parseFloat(e.target.value);
             valueDisplay.textContent = height; // Update displayed value
             createBuilding(height);
         });
     }
-    
+
 
     function createBuilding(height) {
         if (buildingMesh) {
             scene.remove(buildingMesh);
         }
-    
+
         // Normalize the 2D shape points
         const normalizedPoints = points.map(point => {
             return new THREE.Vector2(
@@ -156,31 +156,31 @@ function setupDrawing(canvas, ctx, texture) {
                 -(point[1] / canvas.height) * 4
             );
         });
-    
+
         // The shape should be on the surface of the map, so we need to position it correctly
         const shape = new THREE.Shape(normalizedPoints);
-    
+
         // Calculate geometry for extrusion
         const extrudeSettings = {
             steps: 1,
             depth: height, // Height of the building
             bevelEnabled: false
         };
-    
+
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         const material = new THREE.MeshPhongMaterial({
             color: 0x808080,
             side: THREE.DoubleSide
         });
-    
+
         buildingMesh = new THREE.Mesh(geometry, material);
-    
+
         // Align the building with the center of the shape
         buildingMesh.position.set(0, 0, 0);  // Set the base position
-    
+
         // Add the building mesh to the scene
         scene.add(buildingMesh);
-    
+
         // Add lighting if not already added
         if (!scene.children.find(child => child instanceof THREE.DirectionalLight)) {
             const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -189,46 +189,46 @@ function setupDrawing(canvas, ctx, texture) {
             scene.add(new THREE.AmbientLight(0x404040));
         }
     }
-    
+
 
     function redraw(ctx, texture, closeShape = false) {
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width;
         tempCanvas.height = canvas.height;
         const tempCtx = tempCanvas.getContext('2d');
-    
+
         tempCtx.drawImage(canvas, 0, 0);
-    
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
         // Draw the tempCanvas (map) onto the main canvas
         ctx.drawImage(tempCanvas, 0, 0);
-    
+
         ctx.save();
         ctx.beginPath();
         ctx.strokeStyle = '#294c53';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
-    
+
         points.forEach(point => {
             ctx.beginPath();
             ctx.arc(point[0], point[1], 2, 0, Math.PI * 2);
             ctx.fill();
         });
-    
+
         if (points.length > 1) {
             ctx.beginPath();
             ctx.moveTo(points[0][0], points[0][1]);
             for (let i = 1; i < points.length; i++) {
                 ctx.lineTo(points[i][0], points[i][1]);
             }
-    
+
             if (closeShape) {
                 ctx.lineTo(points[0][0], points[0][1]);
             }
             ctx.stroke();
         }
-    
+
         ctx.restore();
         texture.needsUpdate = true;
     }
@@ -247,4 +247,127 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-animate();
+animate();*/
+
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const container = document.getElementById('canvaContainer');
+if (container) {
+    container.appendChild(renderer.domElement);
+} else {
+    console.error("Element with ID 'canvaContainer' not found.");
+}
+
+camera.position.set(0, 10, 0);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.screenSpacePanning = false;
+controls.minDistance = 1;
+controls.maxDistance = 50;
+controls.maxPolarAngle = Math.PI / 2;
+controls.enabled = false;
+
+let points = [];
+let isShapeClosed = false;
+let buildingMesh = null;
+let lineGeometry, lineMaterial, line;
+
+// Add OpenStreetMap Background
+const tileServerURL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const tileCoords = { x: 19294, y: 24641, z: 16 };
+const textureLoader = new THREE.TextureLoader();
+const texture = textureLoader.load(tileServerURL.replace('{z}', tileCoords.z).replace('{x}', tileCoords.x).replace('{y}', tileCoords.y));
+
+const planeGeometry = new THREE.PlaneGeometry(10, 10);
+const planeMaterial = new THREE.MeshBasicMaterial({ map: texture });
+const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+plane.rotation.x = -Math.PI / 2;
+scene.add(plane);
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function drawLines() {
+    if (line) scene.remove(line);
+    if (points.length < 2) return;
+  
+    lineGeometry = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(p.x, 0.01, p.y)));
+    lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    line = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(line);
+  }
+  
+
+function onMouseClick(event) {
+    console.log(controls.enabled );
+
+ const rect = renderer.domElement.getBoundingClientRect();
+ mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+ mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+ raycaster.setFromCamera(mouse, camera);
+ const intersects = raycaster.intersectObject(plane);
+
+ if (intersects.length > 0) {
+    const point = intersects[0].point;
+    points.push(new THREE.Vector2(point.x, point.z));
+    drawLines();
+ }
+ const button = document.getElementById('myButton');
+    if (button) {
+        button.classList.remove('disabled');
+    }
+
+ if (points.length > 2 && points[0].distanceTo(points[points.length - 1]) < 0.2) {
+    
+    isShapeClosed = true;
+    createBuilding(1);
+    controls.enabled = true;
+ }
+}
+
+renderer.domElement.addEventListener('click', onMouseClick);
+
+
+function createBuilding(height) {
+ if (buildingMesh) {
+ scene.remove(buildingMesh);
+ }
+
+ const shape = new THREE.Shape(points);
+ const extrudeSettings = {
+ steps: 1,
+ depth: height,
+ bevelEnabled: false
+ };
+ const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+ const material = new THREE.MeshPhongMaterial({ color: 0x808080, side: THREE.DoubleSide });
+ buildingMesh = new THREE.Mesh(geometry, material);
+
+ buildingMesh.rotation.x = -Math.PI / 2;
+ buildingMesh.position.set(0, height / 2, 0);
+ scene.add(buildingMesh);
+}
+
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 10, 5);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+function animate() {
+ requestAnimationFrame(animate);
+ if (controls.enabled) {
+    controls.update(); 
+}
+ renderer.render(scene, camera);
+}
+animate()
